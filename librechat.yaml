@@ -1,0 +1,45 @@
+# LibreChat configuration for the Locker Web UI bundle.
+#
+# LibreChat is only the chat UI (ChatGPT-style frontend). It is not the
+# security engine: every prompt goes LibreChat → Locker (PII masking) →
+# the upstream LLM provider. This file wires a Custom Endpoint named
+# "Locker" to the `locker` service in docker-compose.yml.
+#
+# See Docs/roadmap.md Phase 1.1 and the full reference at
+# https://www.librechat.ai/docs/configuration/librechat_yaml
+version: 1.3.13
+cache: true
+
+endpoints:
+  custom:
+    # No `provider:` field: Locker exposes an OpenAI-compatible surface
+    # (POST /v1/chat/completions, SSE streaming with choices[].delta.content)
+    # regardless of which upstream LLM provider it's configured to use, so
+    # LibreChat's default OpenAI-compatible client works unmodified — the
+    # same reason `locker`'s own Mistral adapter needs no translation
+    # (see ../locker/internal/providers/passthrough.go).
+    - name: "Locker"
+      apiKey: "${LOCKER_API_KEY}"
+      baseURL: "http://locker:8080/v1"
+      models:
+        # Models listed here are the choices shown in LibreChat's model
+        # picker — not a lock to a single model. The user picks one per
+        # conversation; that name is sent as the JSON "model" field to
+        # Locker, which forwards it to the active upstream provider.
+        #
+        # Why a static list (fetch: false): `fetch: true` would call
+        # GET /v1/models on baseURL to populate the picker automatically.
+        # Locker does not implement that endpoint (only /healthz and
+        # /v1/chat/completions), so models must be listed explicitly.
+        # Keep this in sync with what locker's active provider actually
+        # serves, and with locker/config.yaml `allowed_models` if set
+        # (a model not in that list is rejected with 403).
+        default:
+          - "gpt-4o"
+          - "gpt-4o-mini"
+        fetch: false
+      titleConvo: true
+      # Model used only to auto-generate the conversation title in the
+      # sidebar — unrelated to which model the user chats with above.
+      titleModel: "gpt-4o-mini"
+      modelDisplayLabel: "Locker"

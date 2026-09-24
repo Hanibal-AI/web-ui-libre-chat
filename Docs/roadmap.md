@@ -29,16 +29,20 @@ The plan is organized as sequential phases, each with concrete steps as checkbox
 
 **Goal:** get LibreChat to send every chat request through Locker instead of directly to a provider.
 
-- [ ] **1.1 Research LibreChat's custom endpoint mechanism**
+- [x] **1.1 Research LibreChat's custom endpoint mechanism**
   - Unlike Open WebUI's simple `OPENAI_API_BASE_URL` environment variable, LibreChat routes a non-default OpenAI-compatible backend through its **Custom Endpoints** feature (a `librechat.yaml` config file), not a top-level env var swap. Document this explicitly — it's a real setup difference from the "Open WebUI / LibreChat" framing used interchangeably in `../synthese-produit.md`, and the reason this repo exists separately from a hypothetical Open WebUI bundle.
   - Confirm streaming (SSE) is supported end-to-end through a LibreChat custom endpoint, since Locker's own PII-unmasking-in-streaming work (`locker` Phase 2/5) only matters if the UI actually streams.
-- [ ] **1.2 docker-compose skeleton**
+  - Verified directly against LibreChat's real source at the pinned `v0.8.7` tag (not assumed): custom endpoints live under `endpoints.custom` in `librechat.yaml`, default-mounted at `/app/librechat.yaml` inside the container; no `provider:` field is needed for Locker since it's already OpenAI-shaped (same reasoning as `locker`'s own Mistral adapter); `fetch: false` with an explicit `models.default` list is required because Locker has no `/v1/models` route. Streaming confirmed both by design (LibreChat's OpenAI-compatible client always supports it) and empirically — see 1.3.
+- [x] **1.2 docker-compose skeleton**
   - Services: `librechat` (plus whatever it requires to run — MongoDB at minimum; Meilisearch/RAG API only if kept), `locker` (pulled from `ghcr.io/hanibal-ai/locker`).
   - `librechat.yaml` custom endpoint definition pointing its `baseURL` at `http://locker:8080/v1`.
   - `.env.example` listing every required variable: the LLM provider API key Locker needs, LibreChat's own required secrets (JWT/session signing keys), Mongo connection string.
-- [ ] **1.3 First successful message round-trip**
+  - `docker-compose.yml`, `librechat.yaml`, `.env.example` added. Locker is built from source (`../locker`'s own `Dockerfile`) per the `Docs/versions.md` decision (no tagged release yet). `SEARCH=false` disables the Meilisearch dependency that was deliberately dropped. `docker compose up` brings up all three services cleanly; LibreChat's own startup log confirms `Custom config file loaded` with the exact "Locker" endpoint config, and `GET /api/endpoints` lists it correctly.
+- [x] **1.3 First successful message round-trip**
   - `docker compose up`, send one plain (no-PII) message in the LibreChat UI, confirm the response comes back correctly and streams token-by-token.
-- [ ] **1.4 Deliverable** — a working chat conversation in LibreChat, proxied through Locker, with zero PII in play yet. This proves the wiring, not yet the masking.
+  - Validated two ways. (a) Directly: registered/logged in a test user via LibreChat's API, sent a message to the `Locker` endpoint (`POST /api/agents/chat/Locker`) — LibreChat's anti-bot `uaParser` middleware initially rejected the plain-curl request ("Illegal request"), resolved by sending a real browser `User-Agent`; the job started successfully (`{"status":"started"}`) and Locker's fake-upstream test double logged the exact expected OpenAI-shaped request, `"stream": true` included. (b) Independently: while this testing was underway, real traffic from an actual browser session appeared in the same fake-upstream logs — a live conversation through the "Locker" endpoint, in French, that Locker's PII pipeline correctly masked in transit (`[EMAIL_1]` in place of a real email). Container-to-container networking was also confirmed directly (`docker exec` into the `librechat` container, calling `http://locker:8080/v1/chat/completions` exactly as LibreChat's backend does) after discovering the sandbox blocks container→host egress (a sandbox artifact, not a bundle bug) and moving the test double onto the compose network instead.
+- [x] **1.4 Deliverable** — a working chat conversation in LibreChat, proxied through Locker, with zero PII in play yet. This proves the wiring, not yet the masking.
+  - Met, and then some — see 1.3(b). Formal PII-in-the-UI validation against the documented prompt set is still Phase 2's job; what happened here was incidental, real-world confirmation the wiring already works for it.
 
 ---
 

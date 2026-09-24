@@ -1,0 +1,46 @@
+# See Docs/roadmap.md Phase 1.2. Minimal stack: LibreChat + the MongoDB it
+# requires + Locker. Meilisearch/RAG/pgvector/admin-panel from LibreChat's
+# own official compose file are deliberately dropped — see Docs/versions.md.
+#
+# Locker is built from source (`../locker`), not pulled from GHCR: locker
+# has not cut a tagged release yet (Docs/versions.md). Switch this to
+# `image: ghcr.io/hanibal-ai/locker:<tag>` once one exists.
+services:
+  locker:
+    build:
+      context: ../locker
+      dockerfile: Dockerfile
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      # Override to point Locker at a local/alternate OpenAI-compatible
+      # endpoint (e.g. a host-machine test double, or a local model
+      # server like Ollama/LM Studio) instead of the real OpenAI API.
+      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-}
+    extra_hosts:
+      - "host.docker.internal:host-gateway" # lets OPENAI_BASE_URL target the host, e.g. http://host.docker.internal:PORT
+    ports:
+      - "${LOCKER_HOST_PORT:-8080}:8080" # exposed on the host too, for debugging with curl
+    restart: unless-stopped
+
+  mongodb:
+    image: mongo:8.0.20
+    command: mongod --noauth
+    volumes:
+      - mongodb_data:/data/db
+    restart: unless-stopped
+
+  librechat:
+    image: ghcr.io/danny-avila/librechat:v0.8.7
+    depends_on:
+      - locker
+      - mongodb
+    env_file:
+      - .env
+    volumes:
+      - ./librechat.yaml:/app/librechat.yaml:ro
+    ports:
+      - "3080:3080"
+    restart: unless-stopped
+
+volumes:
+  mongodb_data:
