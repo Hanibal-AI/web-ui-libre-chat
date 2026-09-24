@@ -1,7 +1,7 @@
 # See Docs/roadmap.md Phase 1. Convenience wrappers around docker compose
 # for local development of the LibreChat ↔ Locker bundle.
 
-.PHONY: dev-run dev-shell dev-logs
+.PHONY: dev-run dev-shell dev-logs dev-inspect
 
 # Brings up the full stack (locker, mongodb, librechat), rebuilding
 # locker from source if ../locker changed.
@@ -18,3 +18,12 @@ dev-shell:
 #   make dev-logs SERVICE=locker
 dev-logs:
 	docker compose logs -f $(SERVICE)
+
+# TEMPORARY, TEST-ONLY (see inspector/relay.py). Brings up the stack with
+# Locker routed through the inspector relay instead of the real provider,
+# so `make dev-logs SERVICE=inspector` shows the masked request Locker
+# actually sends upstream and the raw response that comes back. Run
+# `make dev-run` afterwards to go back to talking to the real provider
+# directly; the inspector container just sits idle until then.
+dev-inspect:
+	OPENAI_BASE_URL=http://inspector:9091 docker compose --profile debug up -d --build

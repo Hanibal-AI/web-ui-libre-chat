@@ -31,9 +31,23 @@ make dev-logs SERVICE=locker    # follow logs for just one (locker, mongodb, or 
 make dev-shell                  # open a shell inside the librechat container
 ```
 
-`dev-shell` targets `librechat`, not `locker` — Locker's image is [distroless](https://github.com/GoogleContainerTools/distroless) and has no shell at all, by design (see `../locker/Dockerfile`). To debug Locker, use `make dev-logs SERVICE=locker`; it never logs request/response bodies or API keys (see `../locker/SECURITY.md`), so PII/secrets won't show up there even in verbose output — to see what Locker actually sends upstream you need to inspect it on the provider side, or point it at a local test double.
+`dev-shell` targets `librechat`, not `locker` — Locker's image is [distroless](https://github.com/GoogleContainerTools/distroless) and has no shell at all, by design (see `../locker/Dockerfile`).
 
 These `make` targets are thin wrappers around `docker compose` — see `Makefile`; run the equivalent `docker compose` commands directly if you don't have `make`.
+
+### Seeing what Locker actually masks (`make dev-inspect`)
+
+`make dev-logs SERVICE=locker` will **not** show you PII, placeholders, or anything about what got masked — by design, Locker never logs request/response bodies or API keys at all (see `../locker/SECURITY.md`). There is nothing to see there.
+
+To actually observe the masked request Locker sends the real LLM provider (and the raw response that comes back), this repo ships a **temporary, test-only** logging relay:
+
+```bash
+make dev-inspect                       # up the stack with Locker routed through the inspector
+make dev-logs SERVICE=inspector        # watch the masked traffic live
+make dev-run                           # switch back to talking to the real provider directly
+```
+
+`inspector/` (see `inspector/relay.py` for the full explanation) sits between Locker and the real provider and prints both sides of every call — by the time traffic reaches it, PII has already been replaced with placeholders (`[EMAIL_1]`, `[PERSON_1]`, ...), so this is a safe way to prove masking works, not a way to see raw user data. It **is not part of the product**: it's not started by default (it lives behind a Compose `debug` profile), it's not meant for anything beyond a local test/demo session, and it does put your real API key and full (masked) conversation content into its own plaintext logs — don't leave it running longer than you need it.
 
 ## Relationship to other repos
 

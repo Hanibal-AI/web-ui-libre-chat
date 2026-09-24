@@ -42,5 +42,22 @@ services:
       - "3080:3080"
     restart: unless-stopped
 
+  # TEMPORARY, TEST-ONLY — see inspector/relay.py. Not started by default
+  # (profile "debug"); logs what Locker actually sends the real provider
+  # (already masked) and what comes back, since Locker itself never logs
+  # bodies (../locker/SECURITY.md). Use `make dev-inspect`, not `docker
+  # compose up` directly, so Locker gets pointed at it deliberately.
+  inspector:
+    build:
+      context: ./inspector
+    environment:
+      # Must include /v1 (or whatever prefix the real provider needs):
+      # Locker's OpenAI adapter already strips /v1 from the incoming path
+      # before forwarding, since it expects baseURL to include it — same
+      # convention here.
+      - INSPECTOR_UPSTREAM=${INSPECTOR_UPSTREAM:-https://api.openai.com/v1}
+    profiles: ["debug"]
+    restart: unless-stopped
+
 volumes:
   mongodb_data:
