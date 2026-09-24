@@ -1,0 +1,16 @@
+# Env / secrets
+.env
+*.local.yaml
+
+# LibreChat local data volumes (created by docker-compose once it exists)
+data-node/
+meili_data/
+logs/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
