@@ -17,9 +17,11 @@ The plan is organized as sequential phases, each with concrete steps as checkbox
 - [x] **0.1 Repository setup**
   - `LICENSE` (Apache 2.0, matching `locker`), this roadmap, `README.md`.
   - `.gitignore` (env files with real secrets, LibreChat's local data volumes, `dist`/`bin`-style build leftovers if any tooling is added later).
-- [ ] **0.2 Version pins**
+- [x] **0.2 Version pins**
   - Decide and document which LibreChat image tag and which Locker image tag (`ghcr.io/hanibal-ai/locker`, published by `locker`'s own Phase 7 release pipeline) this bundle targets, and how that gets bumped over time.
-- [ ] **0.3 Deliverable** — repository exists, documented, ready for Phase 1.
+  - Documented in `Docs/versions.md`. LibreChat: `ghcr.io/danny-avila/librechat:v0.8.7` — deliberately *not* the official compose file's `registry.librechat.ai/danny-avila/librechat-dev:latest`, which has no version-pinned tags at all (verified via `docker manifest inspect`: `:v0.8.7` doesn't exist on that registry, only `:latest`). MongoDB: `mongo:8.0.20`, matching LibreChat's own upstream pin. Locker: **not yet pinned** — `locker` has no tagged release yet (`git tag -l` is empty), so this bundle will build it from source until a first tag exists; switching to a pinned `ghcr.io/hanibal-ai/locker` image is a one-line follow-up once one does.
+- [x] **0.3 Deliverable** — repository exists, documented, ready for Phase 1.
+  - `LICENSE`, `README.md`, `Docs/roadmap.md`, `Docs/versions.md`, `.gitignore` all in place; git repository initialized (`main` branch).
 
 ---
 

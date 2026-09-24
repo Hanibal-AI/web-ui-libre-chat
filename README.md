@@ -10,7 +10,7 @@ Locker on its own is a proxy: you can `curl` it, but you can't *see* it working.
 
 ## Status
 
-Early planning stage — see [Docs/roadmap.md](Docs/roadmap.md) for what's built and what's next. There is no `docker-compose.yml` yet.
+Early planning stage — see [Docs/roadmap.md](Docs/roadmap.md) for what's built and what's next, and [Docs/versions.md](Docs/versions.md) for the exact image versions this bundle pins (and why). There is no `docker-compose.yml` yet.
 
 ## Relationship to other repos
 
